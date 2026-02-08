@@ -321,6 +321,7 @@
         const chooseLassoFillBtn = $("chooseLassoFill");
         const pickColorToolBtn = $("pickColorTool");
         const addPaletteColorBtn = $("addPaletteColor");
+        const clearAllBtn = $("clearAllBtn");
         const paletteBar = $("paletteBar");
         const defLInput = $("defL");
         const defCInput = $("defC");
@@ -378,6 +379,10 @@
         const restoreAutosaveBtn = document.getElementById("restoreAutosave");
         const saveStateBadgeEl = document.getElementById("saveStateBadge");
         const exportImgSeqBtn = document.getElementById("exportImgSeqBtn") || document.getElementById("exportImgSeq");
+        const clearAllModal = document.getElementById("clearAllModal");
+        const clearAllModalBackdrop = document.getElementById("clearAllModalBackdrop");
+        const clearAllConfirmBtn = document.getElementById("clearAllConfirmBtn");
+        const clearAllCancelBtn = document.getElementById("clearAllCancelBtn");
         const stabilizationSelect = $("stabilizationLevel");
         const penControls = $("penControls");
         const pressureSizeToggle = $("pressureSize") || $("usePressureSize");
@@ -3183,6 +3188,85 @@
             } catch {}
             updateHUD();
             pruneUnusedSublayers(L);
+        }
+        function askClearAllConfirmation() {
+            return new Promise(resolve => {
+                if (!clearAllModal || !clearAllModalBackdrop || !clearAllConfirmBtn || !clearAllCancelBtn) {
+                    resolve(window.confirm("Clear ALL frames and layers?\n\nThis will reset undo history and cannot be undone."));
+                    return;
+                }
+                clearAllModal.hidden = false;
+                clearAllModalBackdrop.hidden = false;
+                const cleanup = ok => {
+                    clearAllModal.hidden = true;
+                    clearAllModalBackdrop.hidden = true;
+                    clearAllConfirmBtn.removeEventListener("click", onConfirm);
+                    clearAllCancelBtn.removeEventListener("click", onCancel);
+                    clearAllModalBackdrop.removeEventListener("click", onCancel);
+                    document.removeEventListener("keydown", onEsc);
+                    resolve(ok);
+                };
+                const onConfirm = () => cleanup(true);
+                const onCancel = () => cleanup(false);
+                const onEsc = e => {
+                    if (e.key === "Escape") cleanup(false);
+                };
+                clearAllConfirmBtn.addEventListener("click", onConfirm);
+                clearAllCancelBtn.addEventListener("click", onCancel);
+                clearAllModalBackdrop.addEventListener("click", onCancel);
+                document.addEventListener("keydown", onEsc);
+            });
+        }
+        async function clearAllProjectState() {
+            const ok = await askClearAllConfirmation();
+            if (!ok) return;
+            try {
+                stopPlayback?.();
+            } catch {}
+            try {
+                clearFx?.();
+            } catch {}
+            try {
+                clearRectSelection?.();
+            } catch {}
+            try {
+                clearCelSelection?.();
+            } catch {}
+            try {
+                clearGhostTargets?.();
+            } catch {}
+            try {
+                cancelLasso?.();
+            } catch {}
+            for (let f = 0; f < totalFrames; f++) {
+                clearFrameAllLayers(f);
+            }
+            for (let L = 0; L < LAYERS_COUNT; L++) {
+                try {
+                    pruneUnusedSublayers(L);
+                } catch {}
+            }
+            currentFrame = 0;
+            clipStart = 0;
+            clipEnd = Math.max(0, Math.min(totalFrames - 1, fps * 2 - 1));
+            globalHistory.undo.length = 0;
+            globalHistory.redo.length = 0;
+            historyMap.clear();
+            _pendingGlobalStep = null;
+            _globalStepDirty = false;
+            if (hasTimeline) buildTimeline();
+            try {
+                gotoFrame?.(0);
+            } catch {}
+            try {
+                renderAll?.();
+            } catch {}
+            try {
+                updateHUD?.();
+            } catch {}
+            try {
+                markProjectDirty?.();
+            } catch {}
         }
         function buildTimeline() {
             if (!hasTimeline) return;
@@ -8968,6 +9052,7 @@
                 if (i % 10 === 0) await sleep(0);
             }
         });
+        clearAllBtn?.addEventListener("click", clearAllProjectState);
         dupCelBtn?.addEventListener("click", onDuplicateCel);
         tlDupBtn?.addEventListener("click", onDuplicateCel);
         tlPrevCelBtn?.addEventListener("click", gotoPrevCel);
