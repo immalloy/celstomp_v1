@@ -375,6 +375,8 @@
         const saveProjBtn = document.getElementById("saveProj");
         const loadProjBtn = document.getElementById("loadProj");
         const loadFileInp = document.getElementById("loadFileInp");
+        const restoreAutosaveBtn = document.getElementById("restoreAutosave");
+        const saveStateBadgeEl = document.getElementById("saveStateBadge");
         const exportImgSeqBtn = document.getElementById("exportImgSeqBtn") || document.getElementById("exportImgSeq");
         const stabilizationSelect = $("stabilizationLevel");
         function canvasToBlob(canvas, type = "image/png", quality) {
@@ -6759,10 +6761,16 @@
             for (const m of options) if (MediaRecorder.isTypeSupported(m)) return m;
             return null;
         }
-        if (exportImgSeqBtn) {
-            exportImgSeqBtn.addEventListener("click", onExportImgSeqClick);
-        } else {
-            console.warn("[celstomp] exportImgSeqBtn not found (id exportImgSeqBtn/exportImgSeq).");
+        function initImgSeqExportWiring() {
+            if (!exportImgSeqBtn) {
+                console.warn("[celstomp] exportImgSeqBtn not found (id exportImgSeqBtn/exportImgSeq).");
+                return;
+            }
+            if (!imgSeqExporter) {
+                console.warn("[celstomp] IMG sequence exporter module missing.");
+                return;
+            }
+            imgSeqExporter.wire(exportImgSeqBtn);
         }
         async function onExportImgSeqClick(e) {
             e.preventDefault();
@@ -7212,6 +7220,22 @@
                 if (paperAcc && prevPaper !== null) paperAcc.set(prevPaper);
             }
         }
+        const imgSeqExporter = window.CelstompImgSeqExport?.createExporter?.({
+            getState: () => ({
+                clipStart: clipStart,
+                clipEnd: clipEnd,
+                totalFrames: totalFrames,
+                fps: fps,
+                seconds: seconds,
+                contentW: contentW,
+                contentH: contentH,
+                antiAlias: antiAlias
+            }),
+            drawFrameTo: drawFrameTo,
+            withExportOverridesAsync: withExportOverridesAsync,
+            clamp: clamp,
+            sleep: sleep
+        }) || null;
         async function exportPNGSequenceFull() {
             const start = clipStart;
             const end = clipEnd;
@@ -7326,13 +7350,67 @@
             }
             return out;
         }
-        async function saveProject() {
+        const autosaveController = window.CelstompAutosave?.createController?.({
+            autosaveKey: "celstomp.project.autosave.v1",
+            manualSaveMetaKey: "celstomp.project.manualsave.v1",
+            intervalMs: 45000,
+            badgeEl: saveStateBadgeEl,
+            buildSnapshot: async () => await buildProjectSnapshot(),
+            pointerSelectors: [ "#drawCanvas", "#fillCurrent", "#fillAll", "#tlDupCel", "#toolSeg label", "#layerSeg .layerRow", "#timelineTable td" ],
+            valueSelectors: [ "#autofillToggle", "#brushSize", "#eraserSize", "#tlSnap", "#tlSeconds", "#tlFps", "#tlOnion", "#tlTransparency", "#loopToggle", "#onionPrevColor", "#onionNextColor", "#onionAlpha" ],
+            onRestorePayload: (payload, source) => {
+                const blob = new Blob([ JSON.stringify(payload.data) ], {
+                    type: "application/json"
+                });
+                loadProject(blob, {
+                    source: source
+                });
+            }
+        }) || null;
+        function setSaveStateBadge(text, tone = "") {
+            if (autosaveController) {
+                autosaveController.setBadge(text, tone);
+                return;
+            }
+            if (!saveStateBadgeEl) return;
+            saveStateBadgeEl.textContent = text;
+            saveStateBadgeEl.classList.remove("dirty", "saving", "error");
+            if (tone) saveStateBadgeEl.classList.add(tone);
+        }
+        function markProjectDirty() {
+            if (autosaveController) return autosaveController.markDirty();
+            setSaveStateBadge("Unsaved", "dirty");
+        }
+        function markProjectClean(text = "Saved") {
+            if (autosaveController) return autosaveController.markClean(text);
+            setSaveStateBadge(text, "");
+        }
+        function setLastManualSaveAt(ts = Date.now()) {
+            if (autosaveController) return autosaveController.setManualSaveAt(ts);
             try {
-                if (typeof pausePlayback === "function") pausePlayback();
+                localStorage.setItem("celstomp.project.manualsave.v1", JSON.stringify({
+                    manualSavedAt: ts
+                }));
             } catch {}
-            try {
-                if (typeof stopPlayback === "function") stopPlayback();
-            } catch {}
+        }
+        function getAutosavePayload() {
+            if (autosaveController) return autosaveController.getPayload();
+            return null;
+        }
+        function updateRestoreAutosaveButton() {
+            if (autosaveController) return autosaveController.updateRestoreButton(restoreAutosaveBtn);
+            if (restoreAutosaveBtn) restoreAutosaveBtn.disabled = true;
+        }
+        function wireAutosaveDirtyTracking() {
+            if (autosaveController) return autosaveController.wireDirtyTracking();
+        }
+        function maybePromptAutosaveRecovery() {
+            if (!autosaveController) return;
+            autosaveController.promptRecovery({
+                source: "autosave-prompt"
+            });
+        }
+        async function buildProjectSnapshot() {
             const outLayers = [];
             for (let li = 0; li < LAYERS_COUNT; li++) {
                 const lay = layers?.[li];
@@ -7385,7 +7463,7 @@
                     sublayers: outSubs
                 });
             }
-            const data = {
+            return {
                 version: 2,
                 contentW: contentW,
                 contentH: contentH,
@@ -7417,6 +7495,15 @@
                 oklchDefault: oklchDefault,
                 layers: outLayers
             };
+        }
+        async function saveProject() {
+            try {
+                if (typeof pausePlayback === "function") pausePlayback();
+            } catch {}
+            try {
+                if (typeof stopPlayback === "function") stopPlayback();
+            } catch {}
+            const data = await buildProjectSnapshot();
             const blob = new Blob([ JSON.stringify(data) ], {
                 type: "application/json"
             });
@@ -7428,8 +7515,11 @@
             a.click();
             a.remove();
             URL.revokeObjectURL(url);
+            setLastManualSaveAt(Date.now());
+            markProjectClean("Saved");
+            updateRestoreAutosaveButton();
         }
-        function loadProject(file) {
+        function loadProject(file, options = {}) {
             const fr = new FileReader;
             fr.onerror = () => alert("Failed to read file.");
             fr.onload = () => {
@@ -7674,6 +7764,14 @@
                     try {
                         if (typeof gotoFrame === "function") gotoFrame(currentFrame);
                     } catch {}
+                    const source = String(options?.source || "file");
+                    if (source.startsWith("autosave")) {
+                        markProjectDirty();
+                        setSaveStateBadge("Recovered draft", "dirty");
+                    } else {
+                        markProjectClean("Loaded");
+                    }
+                    updateRestoreAutosaveButton();
                 })().catch(err => {
                     console.warn("[celstomp] loadProject failed:", err);
                     alert("Failed to load project:\n" + (err?.message || String(err)));
@@ -8777,21 +8875,14 @@
             }
             await exportClip(mime, "mp4");
         });
-        exportImgSeqBtn?.addEventListener("click", async () => {
-            try {
-                await exportPNGSequenceFull();
-            } catch (e) {
-                console.error(e);
-                alert("IMG SEQ export failed. Open console for details.");
-            }
-        });
-        wireImgSeqExportButton();
+        initImgSeqExportWiring();
         function initSaveLoadWiring() {
             if (window.__CELSTOMP_SAVELOAD_WIRED__) return;
             window.__CELSTOMP_SAVELOAD_WIRED__ = true;
             const saveProjBtn = document.getElementById("saveProj");
             const loadProjBtn = document.getElementById("loadProj");
             const loadFileInp = document.getElementById("loadFileInp");
+            const restoreAutosaveBtn = document.getElementById("restoreAutosave");
             if (!saveProjBtn || !loadProjBtn || !loadFileInp) return;
             saveProjBtn.addEventListener("click", async () => {
                 try {
@@ -8808,11 +8899,21 @@
                 loadFileInp.value = "";
                 loadFileInp.click();
             });
+            restoreAutosaveBtn?.addEventListener("click", () => {
+                const restored = autosaveController?.restoreLatest("autosave-button");
+                if (!restored) updateRestoreAutosaveButton();
+            });
             loadFileInp.addEventListener("change", e => {
                 const f = e.currentTarget.files?.[0] || null;
                 e.currentTarget.value = "";
-                if (f) loadProject(f);
+                if (f) loadProject(f, {
+                    source: "file"
+                });
             });
+            setSaveStateBadge("Saved");
+            wireAutosaveDirtyTracking();
+            updateRestoreAutosaveButton();
+            window.setTimeout(maybePromptAutosaveRecovery, 0);
         }
         if (document.readyState === "loading") {
             window.addEventListener("DOMContentLoaded", initSaveLoadWiring, {
@@ -9252,16 +9353,9 @@
         window.addEventListener("resize", () => {
             resizeCanvases();
         });
-        window.addEventListener("resize", () => {
-            if (shouldIgnoreViewportResize()) return;
-            scheduleResizeAll();
-        }, {
-            passive: true
-        });
         if (window.visualViewport) {
             window.visualViewport.addEventListener("resize", () => {
-                if (shouldIgnoreViewportResize()) return;
-                scheduleResizeAll();
+                resizeCanvases();
             }, {
                 passive: true
             });

@@ -7,9 +7,6 @@
   <title>ginyo's CELSTOMP</title>
   
   <link rel="icon" href="./icons/favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
 
 
   <link rel="manifest" href="./manifest.webmanifest">
@@ -243,6 +240,8 @@
 
           <button id="saveProj">Save</button>
           <button id="loadProj">Load</button>
+          <button id="restoreAutosave" title="Restore latest autosaved draft" disabled>Restore Draft</button>
+          <div id="saveStateBadge" class="saveStateBadge" role="status" aria-live="polite">Saved</div>
           <button id="pickColorTool">Pick Color Tool</button>
           <button id="addPaletteColor">Add Color</button>
           <button id="fillCurrent">Fill current cel</button>
@@ -360,6 +359,8 @@
 
 
   
+  <script src="./celstomp-imgseq.js"></script>
+  <script src="./celstomp-autosave.js"></script>
   <script src="./celstomp-app.js"></script>
 
 

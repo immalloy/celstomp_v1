@@ -1,9 +1,11 @@
-const CACHE_VERSION = "celstomp-v1";
+const CACHE_VERSION = "celstomp-v5";
 
-const APP_SHELL = [ "./", "./index.html", "./celstomp-styles.css", "./celstomp-app.js", "./manifest.webmanifest", "./icons/favicon.ico", "./icons/favicon-16x16.png", "./icons/favicon-32x32.png", "./icons/apple-touch-icon.png", "./icons/android-chrome-192x192.png", "./icons/android-chrome-512x512.png" ];
+const APP_SHELL = [ "./", "./index.html", "./celstomp-styles.css", "./celstomp-imgseq.js", "./celstomp-autosave.js", "./celstomp-app.js", "./manifest.webmanifest", "./icons/favicon.ico" ];
 
 self.addEventListener("install", event => {
-    event.waitUntil(caches.open(CACHE_VERSION).then(c => c.addAll(APP_SHELL)));
+    event.waitUntil(caches.open(CACHE_VERSION).then(async c => {
+        await Promise.all(APP_SHELL.map(url => c.add(url).catch(() => null)));
+    }));
     self.skipWaiting();
 });
 
