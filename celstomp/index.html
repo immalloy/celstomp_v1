@@ -87,17 +87,7 @@
     <main id="stageWrap">
       <div id="stage">
 
-        <div id="infoPanelLegacy" style="display:none;">
-          <h3>CELSTOMP — Credits &amp; Info</h3>
-          <p>A <em>cel</em> is treated as a group of its layers (Fill, Sketch, Color, Lineart). Holds and onion-skins
-            operate at the cel level.</p>
-          <p><strong>References used:</strong></p>
-          <ul style="margin:6px 0 0 18px; color:#cbd6e2;">
-            <li>OKLCH Color Picker via Color.js Web Components (elements.colorjs.io)</li>
-            <li>Onion skin visualization (prev = blue, next = green)</li>
-            <li>Flood fill + morphological close for gap-tolerant fill</li>
-          </ul>
-        </div>
+
 
         <div id="brushCursorPreview"></div>
 
@@ -422,14 +412,7 @@
   </div>
 
 
-  <script>
-    // SW_REGISTER (unique anchor)
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./service-worker.js").catch(console.error);
-      });
-    }
-  </script>
+  <script src="./js/init.js"></script>
 
 </body>
 
