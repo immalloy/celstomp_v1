@@ -1,5 +1,5 @@
 # Celstomp
-> **Note:** this branch is being rewritten since without the AI -malloy
+> **Note:** this branch is rewritten without the AI - malloy
 
 
 <img width="1920" height="884" alt="image" src="https://github.com/user-attachments/assets/caa9c566-00fc-40dc-9a9c-0eac762d1bee" />
