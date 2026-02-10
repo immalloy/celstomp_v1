@@ -31,12 +31,12 @@ header.top .topSlot.right{
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: url("/ginyospace.ico") center / contain no-repeat;
+  background: url("../../icons/ginyospace.ico") center / contain no-repeat;
   box-shadow: 0 0 0 2px #000 inset;
 }
 
 .brandIconR{
-  background-image: url("/favicon.ico");
+  background-image: url("../../icons/favicon.ico");
 }
 
 
@@ -109,13 +109,31 @@ header.top .topSlot.right{
 
 .topMenuItem{
   width: 100%;
-  padding: 8px 10px;
+  padding: 8px 28px 8px 10px;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(0,0,0,.18);
   color: rgba(255,255,255,.88);
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.topSubmenuTrigger{
+  position: relative;
+}
+
+.topSubmenuTrigger::after{
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-top: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  transform: translateY(-50%) rotate(45deg);
+  opacity: 0.85;
+  pointer-events: none;
 }
 
 .topMenuItem:hover,
