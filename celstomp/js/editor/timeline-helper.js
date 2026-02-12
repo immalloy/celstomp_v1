@@ -514,7 +514,7 @@ function moveSelectedCelsTo(startFrame) {
   for (const mv of pushes) moveCelBundle(mv.from, mv.to);
   for (let i = 0; i < frames.length; i++) setCelBundle(dests[i], bundles[i].b);
   selectedCels = new Set(dests);
-  renderAll();
+  queueRenderAll();
   if (hasTimeline) buildTimeline();
   gotoFrame(dests[0]);
 }
@@ -551,7 +551,7 @@ function moveCel(srcF, dstF) {
           pasteFrameBundle(dstF, saved);
       }
   }
-  renderAll();
+  queueRenderAll();
   if (hasTimeline) buildTimeline();
   gotoFrame(dstF);
   try {
@@ -773,7 +773,7 @@ function startPlayback() {
       restoreTransAfterPlay = true;
       if (toggleTransparencyBtn) toggleTransparencyBtn.textContent = "Transparency: Off";
   }
-  renderAll();
+  queueRenderAll();
   isPlaying = true;
   applyPlayButtonsState();
   const interval = 1e3 / fps;
@@ -805,7 +805,7 @@ function pausePlayback() {
       if (toggleTransparencyBtn) toggleTransparencyBtn.textContent = `Transparency: ${transparencyHoldEnabled ? "On" : "Off"}`;
       restoreTransAfterPlay = false;
   }
-  renderAll();
+  queueRenderAll();
 }
 function stopAndRewind() {
   if (isPlaying) pausePlayback();
@@ -927,7 +927,7 @@ function initMobileTimelineScrub() {
       if (window.state && typeof window.state === "object") {
           if ("frame" in window.state) window.state.frame = frame; else if ("playhead" in window.state) window.state.playhead = frame; else if ("curFrame" in window.state) window.state.curFrame = frame;
       }
-      if (typeof window.renderAll === "function") window.renderAll(); else if (typeof window.renderTimeline === "function") window.renderTimeline();
+      if (typeof window.renderAll === "function") window.queueRenderAll(); else if (typeof window.renderTimeline === "function") window.renderTimeline();
   }
   function scrubAtClientX(clientX) {
       const r = row.getBoundingClientRect();

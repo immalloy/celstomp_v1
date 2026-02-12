@@ -1045,10 +1045,10 @@ async function clearAllProjectState() {
         gotoFrame?.(0);
     } catch {}
     try {
-        renderAll?.();
+        queueRenderAll?.();
     } catch {}
     try {
-        updateHUD?.();
+        queueUpdateHud?.();
     } catch {}
     try {
         markProjectDirty?.();

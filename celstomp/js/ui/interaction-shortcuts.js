@@ -297,7 +297,7 @@ function _wireExtraKeyboardShortcuts() {
               temporaryEyedropper = true;
               previousTool = tool;
               tool = "eyedropper";
-              updateHUD();
+              queuepdateHud();
           }
           return;
       }
@@ -316,7 +316,7 @@ function _wireExtraKeyboardShortcuts() {
           if (previousTool) {
               tool = previousTool;
               previousTool = null;
-              updateHUD();
+              queueUpdateHUD();
           }
       }
       if (e.key === "Shift") {
@@ -378,7 +378,7 @@ function wireKeyboardShortcuts() {
   const setTool = t => {
       tool = t;
       try {
-          updateHUD?.();
+          queueUpdateHUD?.();
       } catch {}
       try {
           scheduleBrushPreviewUpdate?.(true);
@@ -550,7 +550,7 @@ function onWindowKeyDown(e) {
                 recomputeHasContent(rectSelection.L, rectSelection.F, rectSelection.key);
                 commitGlobalHistoryStep();
                 updateTimelineHasContent(rectSelection.F);
-                renderAll();
+                queueRenderAll();
             }
             clearRectSelection();
             e.preventDefault();
