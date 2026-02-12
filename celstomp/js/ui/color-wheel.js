@@ -271,8 +271,6 @@ function buildSVTriangleImage(geom) {
 }
 
 function drawHSVWheel() {
-
-    console.warn("wheel redraw: ", pickerShape);
     const hsvWheelCanvas = $("hsvWheelCanvas");
     if (!hsvWheelCanvas) return;
     

@@ -764,6 +764,7 @@ function startPlayback() {
   restoreOnionAfterPlay = false;
   restoreTransAfterPlay = false;
   if (!keepOnionWhilePlaying && onionEnabled) {
+      const toggleOnionBtn = $("toggleOnion");
       onionEnabled = false;
       restoreOnionAfterPlay = true;
       if (toggleOnionBtn) toggleOnionBtn.textContent = "Onion: Off";
@@ -797,6 +798,7 @@ function pausePlayback() {
   applyPlayButtonsState();
   if (restoreOnionAfterPlay) {
       onionEnabled = prevOnionState;
+      const toggleOnionBtn = $("toggleOnion");
       if (toggleOnionBtn) toggleOnionBtn.textContent = `Onion: ${onionEnabled ? "On" : "Off"}`;
       restoreOnionAfterPlay = false;
   }
